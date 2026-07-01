@@ -25,10 +25,22 @@ interface Student {
   created: string;
 }
 
-interface BookRequest {
+type LifecycleStage = "Requested" | "Approved" | "Ordered" | "Reached Office" | "Ready For Collection" | "Collected By Student" | "Returned";
+type BookDecision = "Pending" | "Approved" | "Rejected";
+
+interface LibraryBookItem {
+  id: string; title: string; author: string; status: BookDecision;
+}
+
+interface SpecialBookItem {
+  id: string; title: string; author: string; status: BookDecision | "Buy"; procurementStage: LifecycleStage; isMarkedForPurchase?: boolean;
+}
+
+interface RequestRecord {
   appNo: string; student: string; studentId: string; dept: string; semester: string;
-  books: string[]; status: "Pending" | "Approved" | "Rejected" | "Completed";
-  type: "Online" | "Manual"; created: string; challanNo: string;
+  type: "Online" | "Manual"; created: string; challanNo: string; status: "Pending" | "Completed";
+  libraryBooks: LibraryBookItem[];
+  specialBooks: SpecialBookItem[];
 }
 
 interface InventoryBook {
@@ -82,13 +94,117 @@ const categoryData = [
   { name: "Law", value: 407, color: "#EC4899" },
 ];
 
-const mockRequests: BookRequest[] = [
-  { appNo: "APP-2024-001", student: "Arjun Sharma", studentId: "STU-2021-0042", dept: "Computer Science", semester: "5th", books: ["Data Structures & Algorithms", "DBMS by Navathe"], status: "Pending", type: "Online", created: "2024-08-12", challanNo: "CHL-2024-001" },
-  { appNo: "APP-2024-002", student: "Priya Verma", studentId: "STU-2022-0118", dept: "Electrical Engineering", semester: "3rd", books: ["Circuit Theory", "Electromagnetics by Hayt"], status: "Approved", type: "Online", created: "2024-08-11", challanNo: "CHL-2024-002" },
-  { appNo: "APP-2024-003", student: "Rohit Gupta", studentId: "STU-2020-0076", dept: "Mechanical Engineering", semester: "7th", books: ["Thermodynamics", "Fluid Mechanics by Munson"], status: "Pending", type: "Manual", created: "2024-08-10", challanNo: "CHL-2024-003" },
-  { appNo: "APP-2024-004", student: "Neha Patel", studentId: "STU-2023-0205", dept: "Civil Engineering", semester: "1st", books: ["Engineering Drawing", "Engineering Mechanics"], status: "Completed", type: "Online", created: "2024-08-09", challanNo: "CHL-2024-004" },
-  { appNo: "APP-2024-005", student: "Vikram Singh", studentId: "STU-2021-0099", dept: "Computer Science", semester: "5th", books: ["Operating Systems by Galvin", "Computer Networks by Tanenbaum", "Software Engineering by Sommerville"], status: "Rejected", type: "Online", created: "2024-08-08", challanNo: "CHL-2024-005" },
-  { appNo: "APP-2024-006", student: "Ananya Krishnan", studentId: "STU-2022-0031", dept: "Electronics", semester: "3rd", books: ["Digital Electronics by Floyd"], status: "Pending", type: "Manual", created: "2024-08-07", challanNo: "CHL-2024-006" },
+const procurementStages: LifecycleStage[] = ["Requested", "Approved", "Ordered", "Reached Office", "Ready For Collection", "Collected By Student", "Returned"];
+
+const initialRequests: RequestRecord[] = [
+  {
+    appNo: "APP-2024-001",
+    student: "Arjun Sharma",
+    studentId: "STU-2021-0042",
+    dept: "Computer Science",
+    semester: "5th",
+    status: "Pending",
+    type: "Online",
+    created: "2024-08-12",
+    challanNo: "CHL-2024-001",
+    libraryBooks: [
+      { id: "LB-001", title: "Data Structures & Algorithms", author: "Cormen", status: "Pending" },
+      { id: "LB-002", title: "DBMS by Navathe", author: "Navathe", status: "Pending" },
+    ],
+    specialBooks: [
+      { id: "SB-001", title: "Advanced Operating Systems", author: "Silberschatz", status: "Pending", procurementStage: "Requested" },
+    ],
+  },
+  {
+    appNo: "APP-2024-002",
+    student: "Priya Verma",
+    studentId: "STU-2022-0118",
+    dept: "Electrical Engineering",
+    semester: "3rd",
+    status: "Pending",
+    type: "Online",
+    created: "2024-08-11",
+    challanNo: "CHL-2024-002",
+    libraryBooks: [
+      { id: "LB-003", title: "Circuit Theory", author: "Hayt", status: "Pending" },
+      { id: "LB-004", title: "Electromagnetics by Hayt", author: "Hayt", status: "Pending" },
+    ],
+    specialBooks: [
+      { id: "SB-002", title: "Digital Signal Processing", author: "Oppenheim", status: "Pending", procurementStage: "Approved" },
+    ],
+  },
+  {
+    appNo: "APP-2024-003",
+    student: "Rohit Gupta",
+    studentId: "STU-2020-0076",
+    dept: "Mechanical Engineering",
+    semester: "7th",
+    status: "Pending",
+    type: "Manual",
+    created: "2024-08-10",
+    challanNo: "CHL-2024-003",
+    libraryBooks: [
+      { id: "LB-005", title: "Thermodynamics", author: "Cengel", status: "Pending" },
+      { id: "LB-006", title: "Fluid Mechanics by Munson", author: "Munson", status: "Pending" },
+    ],
+    specialBooks: [
+      { id: "SB-003", title: "Engineering Materials", author: "Callister", status: "Pending", procurementStage: "Requested" },
+      { id: "SB-004", title: "Machine Design", author: "Shigley", status: "Pending", procurementStage: "Requested" },
+    ],
+  },
+  {
+    appNo: "APP-2024-004",
+    student: "Neha Patel",
+    studentId: "STU-2023-0205",
+    dept: "Civil Engineering",
+    semester: "1st",
+    status: "Completed",
+    type: "Online",
+    created: "2024-08-09",
+    challanNo: "CHL-2024-004",
+    libraryBooks: [
+      { id: "LB-007", title: "Engineering Drawing", author: "N. D. Bhatt", status: "Approved" },
+      { id: "LB-008", title: "Engineering Mechanics", author: "Beer", status: "Rejected" },
+    ],
+    specialBooks: [
+      { id: "SB-005", title: "Surveying Handbook", author: "Mannering", status: "Approved", procurementStage: "Reached Office", isMarkedForPurchase: true },
+    ],
+  },
+  {
+    appNo: "APP-2024-005",
+    student: "Vikram Singh",
+    studentId: "STU-2021-0099",
+    dept: "Computer Science",
+    semester: "5th",
+    status: "Pending",
+    type: "Online",
+    created: "2024-08-08",
+    challanNo: "CHL-2024-005",
+    libraryBooks: [
+      { id: "LB-009", title: "Operating Systems by Galvin", author: "Galvin", status: "Pending" },
+      { id: "LB-010", title: "Computer Networks by Tanenbaum", author: "Tanenbaum", status: "Pending" },
+    ],
+    specialBooks: [
+      { id: "SB-006", title: "Software Engineering by Sommerville", author: "Sommerville", status: "Pending", procurementStage: "Requested" },
+    ],
+  },
+  {
+    appNo: "APP-2024-006",
+    student: "Ananya Krishnan",
+    studentId: "STU-2022-0031",
+    dept: "Electronics",
+    semester: "3rd",
+    status: "Pending",
+    type: "Manual",
+    created: "2024-08-07",
+    challanNo: "CHL-2024-006",
+    libraryBooks: [
+      { id: "LB-011", title: "Digital Electronics by Floyd", author: "Floyd", status: "Pending" },
+    ],
+    specialBooks: [
+      { id: "SB-007", title: "Microprocessor Design", author: "Morris Mano", status: "Pending", procurementStage: "Ordered" },
+    ],
+  },
 ];
 
 const mockInventory: InventoryBook[] = [
@@ -284,135 +400,329 @@ function DashboardCharts() {
   );
 }
 
-// ─── Challan Modal ──────────────────────────────────────────────────────────
+function ProcurementTimeline({ currentStage }: { currentStage: LifecycleStage }) {
+  const currentIndex = procurementStages.indexOf(currentStage);
+  return (
+    <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4">
+      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-4">
+        <span>Procurement Lifecycle</span>
+        <span className="text-blue-700">{currentStage}</span>
+      </div>
+      <div className="flex items-center gap-2 overflow-x-auto">
+        {procurementStages.map((stage, index) => {
+          const done = index <= currentIndex;
+          const active = index === currentIndex;
+          return (
+            <div key={stage} className="flex items-center min-w-[90px] flex-1">
+              <div className="flex flex-1 flex-col items-center gap-2">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${done ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-400"} ${active ? "ring-4 ring-blue-100" : ""}`}>
+                  {done ? <Check className="h-3.5 w-3.5" /> : <div className="h-2 w-2 rounded-full bg-slate-300" />}
+                </div>
+                <span className={`text-[10px] text-center font-medium ${done ? "text-blue-700" : "text-slate-400"}`}>{stage}</span>
+              </div>
+              {index < procurementStages.length - 1 && <div className={`mx-2 h-0.5 flex-1 rounded-full ${index < currentIndex ? "bg-blue-500" : "bg-slate-200"}`} />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-const procurementStages = ["Requested", "Approved", "Purchased", "Received", "Ready", "Collected"];
+function LifecycleDropdown({ value, onChange }: { value: LifecycleStage; onChange: (value: LifecycleStage) => void }) {
+  return (
+    <label className="flex flex-col gap-2 text-sm text-slate-600">
+      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Lifecycle</span>
+      <select value={value} onChange={(e) => onChange(e.target.value as LifecycleStage)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none ring-0 focus:border-blue-300 focus:bg-white">
+        {procurementStages.map((stage) => (
+          <option key={stage} value={stage}>{stage}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
-function ChalllanModal({ request, onClose }: { request: BookRequest; onClose: () => void }) {
-  const [currentStage] = useState(request.status === "Completed" ? 5 : request.status === "Approved" ? 1 : 0);
+function LibraryBookCard({ book, onApprove, onReject }: { book: LibraryBookItem; onApprove: () => void; onReject: () => void }) {
+  const badge = book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : book.status === "Rejected" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700";
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">{book.title}</p>
+          <p className="mt-1 text-sm text-slate-500">{book.author}</p>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge}`}>{book.status}</span>
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-sm text-slate-500">Current status</span>
+        <div className="flex items-center gap-2">
+          <button onClick={onReject} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50">Reject</button>
+          <button onClick={onApprove} className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Approve</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SpecialBookCard({ book, onApprove, onReject, onBuy, onStageChange }: { book: SpecialBookItem; onApprove: () => void; onReject: () => void; onBuy: () => void; onStageChange: (stage: LifecycleStage) => void }) {
+  const badge = book.isMarkedForPurchase ? "bg-violet-100 text-violet-700" : book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : book.status === "Rejected" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700";
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">{book.title}</p>
+          <p className="mt-1 text-sm text-slate-500">{book.author}</p>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge}`}>{book.isMarkedForPurchase ? "Buy" : book.status}</span>
+      </div>
+      <div className="mt-4">
+        <ProcurementTimeline currentStage={book.procurementStage} />
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <LifecycleDropdown value={book.procurementStage} onChange={onStageChange} />
+        <div className="flex items-end justify-end gap-2">
+          <button onClick={onReject} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50">Reject</button>
+          <button onClick={onApprove} className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Approve</button>
+          <button onClick={onBuy} className="rounded-xl border border-violet-200 px-3 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50">Buy</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PendingRequestChallan({ request, onClose, onUpdateRequest, onFinalize }: { request: RequestRecord; onClose: () => void; onUpdateRequest: (updated: RequestRecord) => void; onFinalize: (requestId: string) => void }) {
   const [openSection, setOpenSection] = useState<string | null>("student");
-  const toggle = (k: string) => setOpenSection(p => p === k ? null : k);
+  const toggle = (k: string) => setOpenSection((p) => (p === k ? null : k));
+  const allDecisionsMade = request.libraryBooks.every((book) => book.status !== "Pending") && request.specialBooks.every((book) => book.status !== "Pending");
 
   const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
-    <div className="border border-slate-100 rounded-xl overflow-hidden">
-      <button onClick={() => toggle(id)} className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 hover:bg-blue-50 transition-colors text-sm font-semibold text-slate-700">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <button onClick={() => toggle(id)} className="flex w-full items-center justify-between px-5 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
         {title}
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openSection === id ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${openSection === id ? "rotate-180" : ""}`} />
       </button>
-      {openSection === id && <div className="px-5 py-4 bg-white">{children}</div>}
+      {openSection === id && <div className="border-t border-slate-100 px-5 py-4">{children}</div>}
     </div>
   );
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex justify-between py-1.5 text-sm border-b border-slate-50 last:border-0">
-      <span className="text-slate-500 w-40 flex-shrink-0">{label}</span>
-      <span className="text-slate-800 font-medium text-right">{value}</span>
+    <div className="flex items-center justify-between border-b border-slate-50 py-2 text-sm last:border-0">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-800">{value}</span>
     </div>
   );
+
+  const updateLibraryBook = (bookId: string, status: BookDecision) => {
+    const next = { ...request, libraryBooks: request.libraryBooks.map((book) => (book.id === bookId ? { ...book, status } : book)) };
+    onUpdateRequest(next);
+  };
+
+  const updateSpecialBook = (bookId: string, changes: Partial<SpecialBookItem>) => {
+    const next = { ...request, specialBooks: request.specialBooks.map((book) => (book.id === bookId ? { ...book, ...changes } : book)) };
+    onUpdateRequest(next);
+  };
+
+  const currentStage = request.specialBooks.length > 0 ? request.specialBooks.reduce((acc, book) => {
+    const currentIndex = procurementStages.indexOf(book.procurementStage);
+    const accIndex = procurementStages.indexOf(acc);
+    return currentIndex > accIndex ? book.procurementStage : acc;
+  }, procurementStages[0]) : procurementStages[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5 text-white flex-shrink-0">
-          <div className="flex items-start justify-between">
+      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-5 text-white">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <FileText className="w-4 h-4 opacity-80" />
-                <span className="text-xs font-medium opacity-80 uppercase tracking-wide">Issue Challan</span>
+              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-100">
+                <FileText className="h-4 w-4" /> Pending Request Challan
               </div>
-              <h2 className="text-xl font-bold">{request.challanNo}</h2>
-              <p className="text-sm opacity-80 mt-0.5">Application #{request.appNo}</p>
+              <h2 className="text-xl font-semibold">{request.challanNo}</h2>
+              <p className="mt-1 text-sm text-blue-50">Application #{request.appNo}</p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">
-              <X className="w-4 h-4" />
+            <button onClick={onClose} className="rounded-xl bg-white/10 p-2 transition hover:bg-white/20">
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
-
-        {/* Procurement Timeline */}
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-blue-100 flex-shrink-0">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Procurement Timeline</p>
-          <div className="flex items-center">
-            {procurementStages.map((stage, i) => {
-              const done = i <= currentStage;
-              const active = i === currentStage;
-              return (
-                <div key={stage} className="flex items-center flex-1 last:flex-none">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${done ? "bg-blue-600 border-blue-600" : "bg-white border-slate-200"} ${active ? "ring-4 ring-blue-100" : ""}`}>
-                      {done ? <Check className="w-3.5 h-3.5 text-white" /> : <span className="w-2 h-2 rounded-full bg-slate-300" />}
-                    </div>
-                    <span className={`text-[10px] font-medium whitespace-nowrap ${done ? "text-blue-700" : "text-slate-400"}`}>{stage}</span>
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-6">
+          <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Procurement Lifecycle</h3>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">{currentStage}</span>
+            </div>
+            <ProcurementTimeline currentStage={currentStage} />
+          </div>
+          <div className="space-y-3">
+            <Section id="student" title="Student Details">
+              <InfoRow label="Student Name" value={request.student} />
+              <InfoRow label="Student ID" value={request.studentId} />
+              <InfoRow label="Department" value={request.dept} />
+              <InfoRow label="Semester" value={request.semester} />
+            </Section>
+            <Section id="library" title="Library Books">
+              <div className="space-y-3">
+                {request.libraryBooks.map((book) => (
+                  <LibraryBookCard key={book.id} book={book} onApprove={() => updateLibraryBook(book.id, "Approved")} onReject={() => updateLibraryBook(book.id, "Rejected")} />
+                ))}
+              </div>
+            </Section>
+            <Section id="special" title="Special Book Requests">
+              <div className="space-y-3">
+                {request.specialBooks.map((book) => (
+                  <SpecialBookCard key={book.id} book={book} onApprove={() => updateSpecialBook(book.id, { status: "Approved", isMarkedForPurchase: false })} onReject={() => updateSpecialBook(book.id, { status: "Rejected", isMarkedForPurchase: false })} onBuy={() => updateSpecialBook(book.id, { status: "Approved", isMarkedForPurchase: true })} onStageChange={(stage) => updateSpecialBook(book.id, { procurementStage: stage })} />
+                ))}
+              </div>
+            </Section>
+            <Section id="summary" title="Review & Notes">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Pending</span>
+                    <span className="text-sm text-slate-500">Awaiting final admin submission</span>
                   </div>
-                  {i < procurementStages.length - 1 && (
-                    <div className={`h-0.5 flex-1 mx-1 mb-5 rounded-full transition-all duration-500 ${i < currentStage ? "bg-blue-500" : "bg-slate-200"}`} />
-                  )}
                 </div>
-              );
-            })}
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Remarks</p>
+                  <textarea rows={3} placeholder="Add processing notes here..." className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300" />
+                </div>
+              </div>
+            </Section>
           </div>
         </div>
+        <div className="flex-shrink-0 border-t border-slate-200 bg-slate-50/70 px-6 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-slate-500">{allDecisionsMade ? "All requested items have a decision and are ready for submission." : "Every library and special book needs an approval or rejection before submission."}</div>
+            <div className="flex items-center gap-2">
+              <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Close</button>
+              <button disabled={!allDecisionsMade} onClick={() => onFinalize(request.appNo)} className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">Final Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-3">
-          <Section id="student" title="Student Information">
-            <InfoRow label="Student Name" value={request.student} />
-            <InfoRow label="Student ID" value={request.studentId} />
-            <InfoRow label="Department" value={request.dept} />
-            <InfoRow label="Semester" value={request.semester} />
-          </Section>
-          <Section id="books" title="Book Details">
-            <div className="space-y-2">
-              {request.books.map((b, i) => (
-                <div key={i} className="flex items-center gap-2.5 py-2 border-b border-slate-50 last:border-0">
-                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                  </div>
-                  <span className="text-sm text-slate-700">{b}</span>
+function CompletedRequestChallan({ request }: { request: RequestRecord }) {
+  const currentStage = request.specialBooks.length > 0 ? request.specialBooks.reduce((acc, book) => {
+    const currentIndex = procurementStages.indexOf(book.procurementStage);
+    const accIndex = procurementStages.indexOf(acc);
+    return currentIndex > accIndex ? book.procurementStage : acc;
+  }, procurementStages[0]) : procurementStages[0];
+
+  return (
+    <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-4 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">Completed Request</p>
+            <h3 className="mt-1 text-lg font-semibold">{request.challanNo}</h3>
+            <p className="mt-1 text-sm text-emerald-50">Application #{request.appNo}</p>
+          </div>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Completed</span>
+        </div>
+      </div>
+      <div className="p-5">
+        <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Procurement Lifecycle</p>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">{currentStage}</span>
+          </div>
+          <ProcurementTimeline currentStage={currentStage} />
+        </div>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Student Details</p>
+            <div className="mt-3 space-y-2 text-sm text-slate-700">
+              <div className="flex items-center justify-between"><span className="text-slate-500">Student</span><span className="font-medium">{request.student}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-500">Student ID</span><span className="font-medium">{request.studentId}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-500">Department</span><span className="font-medium">{request.dept}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-500">Semester</span><span className="font-medium">{request.semester}</span></div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Library Books</p>
+            <div className="mt-3 space-y-2 text-sm">
+              {request.libraryBooks.map((book) => (
+                <div key={book.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                  <span className="text-slate-700">{book.title}</span>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{book.status}</span>
                 </div>
               ))}
             </div>
-          </Section>
-          <Section id="status" title="Approval & Issue Status">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400 mb-1">Approval Status</p>
-                <span className={`text-sm font-semibold px-2 py-1 rounded-full ${statusColors[request.status]}`}>{request.status}</span>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400 mb-1">Issue Type</p>
-                <span className="text-sm font-semibold text-blue-700">{request.type}</span>
-              </div>
-            </div>
-            <div className="mt-3">
-              <p className="text-xs text-slate-400 mb-1.5">Remarks</p>
-              <textarea rows={2} placeholder="Add remarks or notes here..." className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none text-slate-700 bg-slate-50" />
-            </div>
-          </Section>
-          <Section id="collection" title="Collection Details">
-            <InfoRow label="Requested On" value={request.created} />
-            <InfoRow label="Challan No." value={request.challanNo} />
-            <InfoRow label="Collection Point" value="Central Library, Block A" />
-            <InfoRow label="Collection Hours" value="9:00 AM – 5:00 PM (Mon–Sat)" />
-          </Section>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors">Close</button>
-          <div className="flex items-center gap-2">
-            <button className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors flex items-center gap-1.5" onClick={() => { toast.error("Request rejected."); onClose(); }}>
-              <XCircle className="w-3.5 h-3.5" /> Reject
-            </button>
-            <button className="px-4 py-2 text-sm font-medium text-blue-700 border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors flex items-center gap-1.5" onClick={() => toast.info("Challan printed.")}>
-              <Printer className="w-3.5 h-3.5" /> Print
-            </button>
-            <button className="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1.5" onClick={() => { toast.success("Request approved successfully!"); onClose(); }}>
-              <CheckCircle className="w-3.5 h-3.5" /> Approve & Submit
-            </button>
           </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Special Book Requests</p>
+            <div className="mt-3 space-y-2 text-sm">
+              {request.specialBooks.map((book) => (
+                <div key={book.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                  <span className="text-slate-700">{book.title}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${book.isMarkedForPurchase ? "bg-violet-100 text-violet-700" : book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{book.isMarkedForPurchase ? "Buy" : book.status}</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{book.procurementStage}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ManualPurchaseCard({ request, book, selected, onSelect, onViewChallan, onStageChange }: { request: RequestRecord; book: SpecialBookItem; selected: boolean; onSelect: () => void; onViewChallan: () => void; onStageChange: (stage: LifecycleStage) => void }) {
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <label className="flex items-start gap-3">
+          <input type="checkbox" checked={selected} onChange={onSelect} className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{book.title}</p>
+            <p className="mt-1 text-sm text-slate-500">{request.student}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1">{request.studentId}</span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1">{request.dept}</span>
+            </div>
+          </div>
+        </label>
+        <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">{book.procurementStage}</span>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <LifecycleDropdown value={book.procurementStage} onChange={onStageChange} />
+        <div className="flex items-end justify-end gap-2">
+          <button onClick={onViewChallan} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">View Full Challan</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PurchaseSelectionToolbar({ selectedCount, onExportPdf, onExportCsv, disabled }: { selectedCount: number; onExportPdf: () => void; onExportCsv: () => void; disabled: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="text-sm text-slate-500">{selectedCount > 0 ? `${selectedCount} book${selectedCount > 1 ? "s" : ""} selected` : "Select one or more books to export"}</div>
+      <div className="flex items-center gap-2">
+        <button disabled={disabled} onClick={onExportPdf} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Generate Purchase PDF</button>
+        <button disabled={disabled} onClick={onExportCsv} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">Generate Purchase CSV</button>
+      </div>
+    </div>
+  );
+}
+
+function ExportConfirmationModal({ type, selectedCount, onClose, onConfirm }: { type: "pdf" | "csv"; selectedCount: number; onClose: () => void; onConfirm: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md rounded-[24px] bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold text-slate-900">Generate Procurement {type.toUpperCase()}?</h3>
+        <p className="mt-3 text-sm text-slate-500">You are about to export {selectedCount} selected book{selectedCount > 1 ? "s" : ""}.</p>
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">Cancel</button>
+          <button onClick={onConfirm} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Generate {type === "pdf" ? "PDF" : "CSV"}</button>
         </div>
       </div>
     </div>
@@ -544,93 +854,130 @@ function RequestsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [deptFilter, setDeptFilter] = useState("All Departments");
-  const [challanReq, setChallanReq] = useState<BookRequest | null>(null);
+  const [requests, setRequests] = useState<RequestRecord[]>(initialRequests);
+  const [selectedRequest, setSelectedRequest] = useState<RequestRecord | null>(null);
+  const [selectedManualBooks, setSelectedManualBooks] = useState<string[]>([]);
+  const [exportModal, setExportModal] = useState<"pdf" | "csv" | null>(null);
   const [page, setPage] = useState(1);
 
-  const filtered = mockRequests.filter(r => {
-    const matchTab = tab === "pending" ? r.status === "Pending" : tab === "completed" ? r.status === "Completed" || r.status === "Rejected" || r.status === "Approved" : r.type === "Manual";
+  const filtered = requests.filter((r) => {
+    const matchTab = tab === "pending" ? r.status === "Pending" : tab === "completed" ? r.status === "Completed" : r.type === "Manual";
     const matchSearch = !search || r.student.toLowerCase().includes(search.toLowerCase()) || r.appNo.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "All Status" || r.status === statusFilter;
+    const matchStatus = statusFilter === "All Status" || (statusFilter === "Pending" ? r.status === "Pending" : statusFilter === "Completed" ? r.status === "Completed" : false);
     const matchDept = deptFilter === "All Departments" || r.dept === deptFilter;
     return matchTab && matchSearch && matchStatus && matchDept;
   });
 
-  const perPage = 5; const paged = filtered.slice((page - 1) * perPage, page * perPage);
-  const tabs = [{ key: "pending", label: "Pending Requests", count: mockRequests.filter(r => r.status === "Pending").length }, { key: "completed", label: "Completed Requests", count: mockRequests.filter(r => r.status === "Completed" || r.status === "Approved" || r.status === "Rejected").length }, { key: "manual", label: "Manual Purchase", count: mockRequests.filter(r => r.type === "Manual").length }] as const;
+  const perPage = 5;
+  const paged = filtered.slice((page - 1) * perPage, page * perPage);
+  const tabs = [
+    { key: "pending", label: "Pending Requests", count: requests.filter((r) => r.status === "Pending").length },
+    { key: "completed", label: "Completed Requests", count: requests.filter((r) => r.status === "Completed").length },
+    { key: "manual", label: "Manual Purchase", count: requests.filter((r) => r.type === "Manual").length },
+  ] as const;
+
+  const manualPurchaseBooks = requests.flatMap((request) => request.specialBooks.filter((book) => book.isMarkedForPurchase).map((book) => ({ request, book })));
+  const selectedBookObjects = manualPurchaseBooks.filter(({ book }) => selectedManualBooks.includes(book.id));
+
+  const toggleManualBook = (bookId: string) => {
+    setSelectedManualBooks((prev) => (prev.includes(bookId) ? prev.filter((id) => id !== bookId) : [...prev, bookId]));
+  };
+
+  const updateRequest = (updated: RequestRecord) => {
+    setRequests((prev) => prev.map((request) => (request.appNo === updated.appNo ? updated : request)));
+  };
+
+  const finalizeRequest = (appNo: string) => {
+    setRequests((prev) => prev.map((request) => (request.appNo === appNo ? { ...request, status: "Completed" } : request)));
+    toast.success("Challan moved to completed requests.");
+    setSelectedRequest(null);
+  };
+
+  const updateManualBookStage = (bookId: string, stage: LifecycleStage) => {
+    setRequests((prev) => {
+      const next = prev.map((request) => ({
+        ...request,
+        specialBooks: request.specialBooks.map((book) => (book.id === bookId ? { ...book, procurementStage: stage } : book)),
+      }));
+      const matched = next.find((request) => request.specialBooks.some((book) => book.id === bookId));
+      if (selectedRequest?.appNo === matched?.appNo) {
+        setSelectedRequest(matched ?? null);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-5">
-      {challanReq && <ChalllanModal request={challanReq} onClose={() => setChallanReq(null)} />}
+      {selectedRequest && (selectedRequest.status === "Completed" ? <CompletedRequestChallan request={selectedRequest} /> : <PendingRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} onUpdateRequest={updateRequest} onFinalize={finalizeRequest} />)}
+      {exportModal && <ExportConfirmationModal type={exportModal} selectedCount={selectedBookObjects.length} onClose={() => setExportModal(null)} onConfirm={() => { toast.success(`Generated ${exportModal.toUpperCase()} export.`); setExportModal(null); }} />}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Book Requests</h1>
         <p className="text-sm text-slate-400 mt-0.5">Manage and process all student book requests.</p>
       </div>
-      {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => { setTab(t.key); setPage(1); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${tab === t.key ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 w-fit">
+        {tabs.map((t) => (
+          <button key={t.key} onClick={() => { setTab(t.key); setPage(1); }} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 ${tab === t.key ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}>
             {t.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${tab === t.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>{t.count}</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-xs font-semibold ${tab === t.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>{t.count}</span>
           </button>
         ))}
       </div>
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput placeholder="Search requests..." value={search} onChange={v => { setSearch(v); setPage(1); }} />
-        <SelectFilter value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1); }} options={["All Status", "Pending", "Approved", "Rejected", "Completed"]} icon={<Filter className="w-3.5 h-3.5" />} />
-        <SelectFilter value={deptFilter} onChange={v => { setDeptFilter(v); setPage(1); }} options={["All Departments", "Computer Science", "Electrical Engineering", "Mechanical Engineering", "Civil Engineering", "Electronics"]} icon={<Building2 className="w-3.5 h-3.5" />} />
+        <SearchInput placeholder="Search requests..." value={search} onChange={(v) => { setSearch(v); setPage(1); }} />
+        <SelectFilter value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} options={["All Status", "Pending", "Completed"]} icon={<Filter className="w-3.5 h-3.5" />} />
+        <SelectFilter value={deptFilter} onChange={(v) => { setDeptFilter(v); setPage(1); }} options={["All Departments", "Computer Science", "Electrical Engineering", "Mechanical Engineering", "Civil Engineering", "Electronics"]} icon={<Building2 className="w-3.5 h-3.5" />} />
       </div>
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              {["App No.", "Student", "Department", "Requested Books", "Type", "Status", "Date", "Actions"].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide first:pl-6 last:pr-6">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paged.length === 0 ? (
-              <tr><td colSpan={8} className="px-6 py-16 text-center text-slate-400">
-                <div className="flex flex-col items-center gap-3">
-                  <Inbox className="w-10 h-10 text-slate-200" />
-                  <p className="text-sm font-medium">No requests found</p>
-                  <p className="text-xs text-slate-300">Try adjusting your filters</p>
-                </div>
-              </td></tr>
-            ) : paged.map(r => (
-              <tr key={r.appNo} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
-                <td className="px-4 py-3.5 pl-6 font-medium text-blue-600 text-xs">{r.appNo}</td>
-                <td className="px-4 py-3.5">
-                  <div className="font-medium text-slate-800">{r.student}</div>
-                  <div className="text-xs text-slate-400">{r.studentId}</div>
-                </td>
-                <td className="px-4 py-3.5 text-slate-600 text-xs">{r.dept}<br /><span className="text-slate-400">{r.semester} Sem</span></td>
-                <td className="px-4 py-3.5 max-w-[180px]">
-                  <div className="text-slate-700 text-xs leading-relaxed">{r.books.slice(0, 2).join(", ")}{r.books.length > 2 && <span className="text-blue-500"> +{r.books.length - 2} more</span>}</div>
-                </td>
-                <td className="px-4 py-3.5"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.type === "Manual" ? "bg-purple-100 text-purple-700" : "bg-sky-100 text-sky-700"}`}>{r.type}</span></td>
-                <td className="px-4 py-3.5"><Badge status={r.status} /></td>
-                <td className="px-4 py-3.5 text-xs text-slate-400">{r.created}</td>
-                <td className="px-4 py-3.5 pr-6">
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={() => setChallanReq(r)} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> Challan
-                    </button>
-                    <button onClick={() => toast.success("Approved!")} className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors" title="Approve"><Check className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => toast.error("Rejected.")} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Reject"><X className="w-3.5 h-3.5" /></button>
+
+      {tab !== "manual" ? (
+        <div className="space-y-4">
+          {paged.length === 0 ? (
+            <div className="rounded-[24px] border border-slate-200 bg-white p-10 text-center text-slate-400">
+              <Inbox className="mx-auto mb-3 h-10 w-10 text-slate-200" />
+              <p className="text-sm font-medium">No requests found</p>
+            </div>
+          ) : paged.map((request) => (
+            <div key={request.appNo} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-blue-600">{request.appNo}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${request.type === "Manual" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>{request.type}</span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="px-6 py-3">
-          <Pagination total={filtered.length} page={page} setPage={setPage} />
+                  <h3 className="mt-2 text-lg font-semibold text-slate-900">{request.student}</h3>
+                  <p className="mt-1 text-sm text-slate-500">{request.studentId} • {request.dept} • {request.semester}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${request.status === "Completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{request.status}</span>
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Requested Books</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {request.libraryBooks.map((book) => <span key={book.id} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600">{book.title}</span>)}
+                  {request.specialBooks.map((book) => <span key={book.id} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600">{book.title}</span>)}
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-slate-500">Created {request.created}</div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setSelectedRequest(request)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">{request.status === "Completed" ? "View Completed Challan" : "View Challan"}</button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <Pagination total={filtered.length} page={page} setPage={setPage} perPage={perPage} />
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          <PurchaseSelectionToolbar selectedCount={selectedBookObjects.length} disabled={selectedBookObjects.length === 0} onExportPdf={() => setExportModal("pdf")} onExportCsv={() => setExportModal("csv")} />
+          <div className="grid gap-4 xl:grid-cols-2">
+            {manualPurchaseBooks.map(({ request, book }) => (
+              <ManualPurchaseCard key={book.id} request={request} book={book} selected={selectedManualBooks.includes(book.id)} onSelect={() => toggleManualBook(book.id)} onViewChallan={() => setSelectedRequest(request)} onStageChange={(stage) => updateManualBookStage(book.id, stage)} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
