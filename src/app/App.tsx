@@ -59,6 +59,13 @@ interface Notification {
   message: string; timestamp: string; read: boolean; group: "Today" | "Yesterday" | "Earlier";
 }
 
+function formatStudentId(value: number): string {
+  if (value < 1 || value > 10000) {
+    throw new RangeError("Student ID value must be between 1 and 10000.");
+  }
+  return `S${String(value).padStart(5, "0")}`;
+}
+
 // ─── Mock Data ──────────────────────────────────────────────────────────────
 
 const kpiData = [
@@ -101,7 +108,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-001",
     student: "Arjun Sharma",
-    studentId: "STU-2021-0042",
+    studentId: formatStudentId(1),
     dept: "Computer Science",
     semester: "5th",
     status: "Pending",
@@ -119,7 +126,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-002",
     student: "Priya Verma",
-    studentId: "STU-2022-0118",
+    studentId: formatStudentId(2),
     dept: "Electrical Engineering",
     semester: "3rd",
     status: "Pending",
@@ -137,7 +144,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-003",
     student: "Rohit Gupta",
-    studentId: "STU-2020-0076",
+    studentId: formatStudentId(3),
     dept: "Mechanical Engineering",
     semester: "7th",
     status: "Pending",
@@ -156,7 +163,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-004",
     student: "Neha Patel",
-    studentId: "STU-2023-0205",
+    studentId: formatStudentId(4),
     dept: "Civil Engineering",
     semester: "1st",
     status: "Completed",
@@ -174,7 +181,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-005",
     student: "Vikram Singh",
-    studentId: "STU-2021-0099",
+    studentId: formatStudentId(5),
     dept: "Computer Science",
     semester: "5th",
     status: "Pending",
@@ -192,7 +199,7 @@ const initialRequests: RequestRecord[] = [
   {
     appNo: "APP-2024-006",
     student: "Ananya Krishnan",
-    studentId: "STU-2022-0031",
+    studentId: formatStudentId(6),
     dept: "Electronics",
     semester: "3rd",
     status: "Pending",
@@ -217,22 +224,42 @@ const mockInventory: InventoryBook[] = [
   { id: "BK-006", name: "Operating System Concepts", author: "Galvin, Gagne", publisher: "Wiley", category: "Computer Science", edition: "10th", copies: 9, available: 3 },
   { id: "BK-007", name: "Strength of Materials", author: "R.K. Bansal", publisher: "Laxmi Publications", category: "Civil", edition: "5th", copies: 14, available: 9 },
   { id: "BK-008", name: "Fluid Mechanics", author: "Frank M. White", publisher: "McGraw-Hill", category: "Mechanical", edition: "8th", copies: 7, available: 4 },
+  { id: "BK-009", name: "Introduction to Algorithms", author: "Cormen, Leiserson, Rivest", publisher: "MIT Press", category: "Computer Science", edition: "3rd", copies: 18, available: 12 },
+  { id: "BK-010", name: "Signals and Systems", author: "Simon Haykin", publisher: "Wiley", category: "Electrical", edition: "2nd", copies: 11, available: 7 },
+  { id: "BK-011", name: "Concrete Technology", author: "M.S. Shetty", publisher: "S. Chand", category: "Civil", edition: "3rd", copies: 9, available: 5 },
+  { id: "BK-012", name: "Modern Control Engineering", author: "Katsuhiko Ogata", publisher: "Pearson", category: "Electronics", edition: "5th", copies: 13, available: 10 },
+  { id: "BK-013", name: "Environmental Engineering", author: "Peavy, Rowe", publisher: "McGraw-Hill", category: "Science", edition: "4th", copies: 6, available: 4 },
+  { id: "BK-014", name: "Engineering Economics", author: "R.P. Rustagi", publisher: "S. Chand", category: "Commerce", edition: "7th", copies: 10, available: 8 },
+];
+
+const recentApprovedRequests = [
+  { student: "Arjun Sharma", studentId: formatStudentId(1), requestNo: "APP-2024-004", books: 3, approvedOn: "2024-08-13", status: "Completed" },
+  { student: "Neha Patel", studentId: formatStudentId(4), requestNo: "APP-2024-009", books: 2, approvedOn: "2024-08-11", status: "Completed" },
+  { student: "Priya Verma", studentId: formatStudentId(2), requestNo: "APP-2024-010", books: 1, approvedOn: "2024-08-10", status: "Completed" },
+];
+
+const returningBooksData = [
+  { student: "Vikram Singh", studentId: formatStudentId(5), title: "Operating System Concepts", issueDate: "2024-07-20", dueDate: "2024-08-19", remainingDays: 4, status: "Critical" },
+  { student: "Ananya Krishnan", studentId: formatStudentId(6), title: "Modern Control Engineering", issueDate: "2024-07-25", dueDate: "2024-08-24", remainingDays: 9, status: "Due Soon" },
+  { student: "Deepak Nair", studentId: formatStudentId(7), title: "Data Structures & Algorithms", issueDate: "2024-07-18", dueDate: "2024-08-17", remainingDays: 2, status: "Critical" },
+  { student: "Rohit Gupta", studentId: formatStudentId(3), title: "Thermodynamics: An Engineering Approach", issueDate: "2024-07-12", dueDate: "2024-08-11", remainingDays: -2, status: "Critical" },
+  { student: "Neha Patel", studentId: formatStudentId(4), title: "Surveying Handbook", issueDate: "2024-07-22", dueDate: "2024-08-21", remainingDays: 6, status: "Due Soon" },
 ];
 
 const mockStudents: Student[] = [
-  { id: "STU-2021-0042", name: "Arjun Sharma", dept: "Computer Science", semester: "5th", phone: "9876543210", email: "arjun.sharma@svga.edu.in", membership: "Standard", status: "Active", created: "2021-07-15" },
-  { id: "STU-2022-0118", name: "Priya Verma", dept: "Electrical Engineering", semester: "3rd", phone: "9876512345", email: "priya.verma@svga.edu.in", membership: "Premium", status: "Active", created: "2022-07-20" },
-  { id: "STU-2020-0076", name: "Rohit Gupta", dept: "Mechanical Engineering", semester: "7th", phone: "9123456789", email: "rohit.gupta@svga.edu.in", membership: "Standard", status: "Active", created: "2020-07-12" },
-  { id: "STU-2023-0205", name: "Neha Patel", dept: "Civil Engineering", semester: "1st", phone: "9988776655", email: "neha.patel@svga.edu.in", membership: "Standard", status: "Active", created: "2023-07-18" },
-  { id: "STU-2021-0099", name: "Vikram Singh", dept: "Computer Science", semester: "5th", phone: "9765432100", email: "vikram.singh@svga.edu.in", membership: "Standard", status: "Suspended", created: "2021-07-14" },
-  { id: "STU-2022-0031", name: "Ananya Krishnan", dept: "Electronics", semester: "3rd", phone: "9871234560", email: "ananya.k@svga.edu.in", membership: "Premium", status: "Active", created: "2022-07-22" },
-  { id: "STU-2019-0011", name: "Deepak Nair", dept: "Computer Science", semester: "8th", phone: "9543210987", email: "deepak.nair@svga.edu.in", membership: "Standard", status: "Inactive", created: "2019-07-10" },
+  { id: formatStudentId(1), name: "Arjun Sharma", dept: "Computer Science", semester: "5th", phone: "9876543210", email: "arjun.sharma@svga.edu.in", membership: "Standard", status: "Active", created: "2021-07-15" },
+  { id: formatStudentId(2), name: "Priya Verma", dept: "Electrical Engineering", semester: "3rd", phone: "9876512345", email: "priya.verma@svga.edu.in", membership: "Premium", status: "Active", created: "2022-07-20" },
+  { id: formatStudentId(3), name: "Rohit Gupta", dept: "Mechanical Engineering", semester: "7th", phone: "9123456789", email: "rohit.gupta@svga.edu.in", membership: "Standard", status: "Active", created: "2020-07-12" },
+  { id: formatStudentId(4), name: "Neha Patel", dept: "Civil Engineering", semester: "1st", phone: "9988776655", email: "neha.patel@svga.edu.in", membership: "Standard", status: "Active", created: "2023-07-18" },
+  { id: formatStudentId(5), name: "Vikram Singh", dept: "Computer Science", semester: "5th", phone: "9765432100", email: "vikram.singh@svga.edu.in", membership: "Standard", status: "Suspended", created: "2021-07-14" },
+  { id: formatStudentId(6), name: "Ananya Krishnan", dept: "Electronics", semester: "3rd", phone: "9871234560", email: "ananya.k@svga.edu.in", membership: "Premium", status: "Active", created: "2022-07-22" },
+  { id: formatStudentId(7), name: "Deepak Nair", dept: "Computer Science", semester: "8th", phone: "9543210987", email: "deepak.nair@svga.edu.in", membership: "Standard", status: "Inactive", created: "2019-07-10" },
 ];
 
 const mockAuditLogs: AuditEntry[] = [
   { id: "AL-001", timestamp: "2024-08-12 14:32:15", admin: "Admin Suresh", action: "Approved Request", module: "Book Requests", result: "Success", details: "Approved APP-2024-002 for Priya Verma" },
   { id: "AL-002", timestamp: "2024-08-12 13:18:42", admin: "Admin Suresh", action: "Added Book", module: "Inventory", result: "Success", details: "Added 10 copies of 'Advanced Java Programming'" },
-  { id: "AL-003", timestamp: "2024-08-12 11:05:30", admin: "Admin Meena", action: "Suspended Student", module: "Students", result: "Warning", details: "Suspended STU-2021-0099 (Vikram Singh) — policy violation" },
+  { id: "AL-003", timestamp: "2024-08-12 11:05:30", admin: "Admin Meena", action: "Suspended Student", module: "Students", result: "Warning", details: `Suspended ${formatStudentId(5)} (Vikram Singh) — policy violation` },
   { id: "AL-004", timestamp: "2024-08-11 16:44:09", admin: "Admin Suresh", action: "Rejected Request", module: "Book Requests", result: "Success", details: "Rejected APP-2024-005; book not available in required quantity" },
   { id: "AL-005", timestamp: "2024-08-11 10:22:57", admin: "Admin Meena", action: "Exported Data", module: "Inventory", result: "Success", details: "Exported inventory report as XLSX" },
   { id: "AL-006", timestamp: "2024-08-10 15:30:12", admin: "System", action: "Backup Created", module: "System", result: "Success", details: "Automated daily backup completed — 48 MB" },
@@ -242,7 +269,7 @@ const mockAuditLogs: AuditEntry[] = [
 const mockNotifications: Notification[] = [
   { id: "N-001", type: "request", message: "New book request APP-2024-007 submitted by Kavitha Reddy", timestamp: "10 minutes ago", read: false, group: "Today" },
   { id: "N-002", type: "inventory", message: "Low stock alert: 'Operating System Concepts' — only 3 copies remaining", timestamp: "1 hour ago", read: false, group: "Today" },
-  { id: "N-003", type: "student", message: "Student STU-2023-0318 completed registration — pending membership approval", timestamp: "3 hours ago", read: false, group: "Today" },
+  { id: "N-003", type: "student", message: `Student ${formatStudentId(8)} completed registration — pending membership approval`, timestamp: "3 hours ago", read: false, group: "Today" },
   { id: "N-004", type: "system", message: "Automated backup completed successfully — 48 MB", timestamp: "6 hours ago", read: true, group: "Today" },
   { id: "N-005", type: "request", message: "APP-2024-003 has been pending for more than 48 hours — action required", timestamp: "Yesterday, 4:20 PM", read: true, group: "Yesterday" },
   { id: "N-006", type: "inventory", message: "New book batch received: 25 copies of 'Engineering Mathematics'", timestamp: "Yesterday, 10:05 AM", read: true, group: "Yesterday" },
@@ -913,11 +940,83 @@ function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Welcome back, Admin Suresh — here's what's happening today.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Welcome back, Admin Suresh — here is the latest status for requests, inventory, and returns.</p>
       </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiData.map(item => <KPICard key={item.label} item={item} />)}
       </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Recent Approved Requests</h2>
+                <p className="text-xs text-slate-500">Latest completed workflows from the last week.</p>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{recentApprovedRequests.length} records</span>
+            </div>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {recentApprovedRequests.map((item) => (
+              <div key={item.requestNo} className="px-6 py-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{item.student}</p>
+                    <p className="text-xs text-slate-500">{item.studentId} · {item.requestNo}</p>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-3 py-1">{item.status}</span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{item.books} books</span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Approved {item.approvedOn}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Books Due for Return</h2>
+                <p className="text-xs text-slate-500">Monitor upcoming deadlines and overdue status.</p>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{returningBooksData.length} students</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+                  <th className="px-5 py-3">Student</th>
+                  <th className="px-5 py-3">Book</th>
+                  <th className="px-5 py-3">Due Date</th>
+                  <th className="px-5 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {returningBooksData.map((item) => (
+                  <tr key={`${item.studentId}-${item.title}`} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="font-medium text-slate-900">{item.student}</div>
+                      <div className="text-xs text-slate-500">{item.studentId}</div>
+                    </td>
+                    <td className="px-5 py-4 text-slate-700">{item.title}</td>
+                    <td className="px-5 py-4 text-slate-700">{item.dueDate}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${item.status === 'Critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{item.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <DashboardCharts />
     </div>
   );
