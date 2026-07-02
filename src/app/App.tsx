@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import { Toaster, toast } from "sonner";
+import { useHasMounted, usePrefersReducedMotion } from "./components/ui/motion-utils";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -335,8 +336,10 @@ function KPICard({ item }: { item: typeof kpiData[0] }) {
   const c = kpiColors[item.color];
   const Icon = item.icon;
   const up = item.trend >= 0;
+  const mounted = useHasMounted();
+  const reduced = usePrefersReducedMotion();
   return (
-    <div className={`bg-white rounded-2xl border ${c.border} p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group cursor-default`}>
+    <div className={`bg-white rounded-2xl border ${c.border} p-5 shadow-sm transition-all duration-220 hover:-translate-y-1 hover:shadow-md group cursor-default ${mounted && !reduced ? "page-enter" : ""}`}>
       <div className="flex items-start justify-between mb-4">
         <div className={`${c.bg} p-2.5 rounded-xl group-hover:scale-105 transition-transform duration-200`}>
           <Icon className={`w-5 h-5 ${c.icon}`} />
@@ -541,7 +544,7 @@ function ChallanModal({ children, title, subtitle, label, onClose }: { children:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-panel relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50 px-6 py-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</p>
@@ -888,22 +891,22 @@ function AddBookModal({ onClose }: { onClose: () => void }) {
 
 function SearchInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="relative">
-      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+    <div className="search-shell relative rounded-xl border border-slate-200 bg-white">
+      <Search className="search-icon absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white w-64 text-slate-800 placeholder:text-slate-300 transition-all" />
+        className="w-64 rounded-xl border-0 bg-transparent py-2 pl-9 pr-4 text-sm text-slate-800 outline-none placeholder:text-slate-300" />
     </div>
   );
 }
 
 function SelectFilter({ value, onChange, options, icon }: { value: string; onChange: (v: string) => void; options: string[]; icon?: React.ReactNode }) {
   return (
-    <div className="relative">
+    <div className="search-shell relative rounded-xl border border-slate-200 bg-white">
       {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>}
-      <select value={value} onChange={e => onChange(e.target.value)} className={`${icon ? "pl-9" : "pl-3"} pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-700 appearance-none cursor-pointer transition-all`}>
+      <select value={value} onChange={e => onChange(e.target.value)} className={`${icon ? "pl-9" : "pl-3"} pr-8 py-2 text-sm bg-transparent text-slate-700 appearance-none cursor-pointer outline-none`}>
         {options.map(o => <option key={o}>{o}</option>)}
       </select>
-      <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
     </div>
   );
 }
@@ -911,7 +914,7 @@ function SelectFilter({ value, onChange, options, icon }: { value: string; onCha
 // ─── Status Badge ───────────────────────────────────────────────────────────
 
 function Badge({ status }: { status: string }) {
-  return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[status] || "bg-slate-100 text-slate-600"}`}>{status}</span>;
+  return <span className={`status-chip text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[status] || "bg-slate-100 text-slate-600"}`}>{status}</span>;
 }
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
@@ -936,8 +939,9 @@ function Pagination({ total, page, setPage, perPage = 5 }: { total: number; page
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
 
 function DashboardPage() {
+  const reduced = usePrefersReducedMotion();
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${reduced ? "" : "page-enter"}`}>
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="text-sm text-slate-400 mt-0.5">Welcome back, Admin Suresh — here is the latest status for requests, inventory, and returns.</p>
@@ -1025,6 +1029,7 @@ function DashboardPage() {
 // ─── Requests Page ──────────────────────────────────────────────────────────
 
 function RequestsPage() {
+  const reduced = usePrefersReducedMotion();
   const [tab, setTab] = useState<"pending" | "completed" | "manual">("pending");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -1084,7 +1089,7 @@ function RequestsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${reduced ? "" : "page-enter"}`}>
       {selectedRequest && (selectedRequest.status === "Completed" ? <CompletedRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} /> : <PendingRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} onUpdateRequest={updateRequest} onFinalize={finalizeRequest} />)}
       {exportModal && <ExportConfirmationModal type={exportModal} selectedCount={selectedBookObjects.length} onClose={() => setExportModal(null)} onConfirm={() => { toast.success(`Generated ${exportModal.toUpperCase()} export.`); setExportModal(null); }} />}
       <div>
@@ -1112,8 +1117,8 @@ function RequestsPage() {
               <Inbox className="mx-auto mb-3 h-10 w-10 text-slate-200" />
               <p className="text-sm font-medium">No requests found</p>
             </div>
-          ) : paged.map((request) => (
-            <div key={request.appNo} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          ) : paged.map((request, index) => (
+            <div key={request.appNo} className={`table-row-enter rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm`} style={{ animationDelay: `${index * 28}ms` }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1148,8 +1153,10 @@ function RequestsPage() {
         <div className="space-y-4">
           <PurchaseSelectionToolbar selectedCount={selectedBookObjects.length} disabled={selectedBookObjects.length === 0} onExportPdf={() => setExportModal("pdf")} onExportCsv={() => setExportModal("csv")} />
           <div className="grid gap-4 xl:grid-cols-2">
-            {manualPurchaseBooks.map(({ request, book }) => (
-              <ManualPurchaseCard key={book.id} request={request} book={book} selected={selectedManualBooks.includes(book.id)} onSelect={() => toggleManualBook(book.id)} onViewChallan={() => setSelectedRequest(request)} onStageChange={(stage) => updateManualBookStage(book.id, stage)} />
+            {manualPurchaseBooks.map(({ request, book }, index) => (
+              <div key={book.id} className={`table-row-enter ${reduced ? "" : ""}`} style={{ animationDelay: `${index * 28}ms` }}>
+                <ManualPurchaseCard request={request} book={book} selected={selectedManualBooks.includes(book.id)} onSelect={() => toggleManualBook(book.id)} onViewChallan={() => setSelectedRequest(request)} onStageChange={(stage) => updateManualBookStage(book.id, stage)} />
+              </div>
             ))}
           </div>
         </div>
@@ -1161,6 +1168,7 @@ function RequestsPage() {
 // ─── Inventory Page ─────────────────────────────────────────────────────────
 
 function InventoryPage() {
+  const reduced = usePrefersReducedMotion();
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("All Categories");
   const [showAdd, setShowAdd] = useState(false);
@@ -1173,7 +1181,7 @@ function InventoryPage() {
   const perPage = 6; const paged = filtered.slice((page - 1) * perPage, page * perPage);
 
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${reduced ? "" : "page-enter"}`}>
       {showAdd && <AddBookModal onClose={() => setShowAdd(false)} />}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
@@ -1206,10 +1214,10 @@ function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {paged.map(b => {
+            {paged.map((b, index) => {
               const pct = Math.round((b.available / b.copies) * 100);
               return (
-                <tr key={b.id} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                <tr key={b.id} className={`table-row-enter border-b border-slate-50 hover:bg-blue-50/30 transition-colors ${reduced ? "" : ""}`} style={{ animationDelay: `${index * 24}ms` }}>
                   <td className="px-4 py-3.5 pl-6">
                     <div className="font-medium text-slate-800">{b.name}</div>
                     <div className="text-xs text-slate-400">{b.id}</div>
@@ -1247,6 +1255,7 @@ function InventoryPage() {
 // ─── Students Page ──────────────────────────────────────────────────────────
 
 function StudentsPage() {
+  const reduced = usePrefersReducedMotion();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("All Departments");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -1285,8 +1294,8 @@ function StudentsPage() {
             </tr>
           </thead>
           <tbody>
-            {paged.map(s => (
-              <tr key={s.id} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+            {paged.map((s, index) => (
+              <tr key={s.id} className={`table-row-enter border-b border-slate-50 hover:bg-blue-50/30 transition-colors ${reduced ? "" : ""}`} style={{ animationDelay: `${index * 24}ms` }}>
                 <td className="px-4 py-3.5 pl-6 text-xs font-medium text-blue-600">{s.id}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2.5">
@@ -1324,6 +1333,7 @@ function StudentsPage() {
 // ─── Audit Logs Page ────────────────────────────────────────────────────────
 
 function AuditLogsPage() {
+  const reduced = usePrefersReducedMotion();
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("All Actions");
   const filtered = mockAuditLogs.filter(e =>
@@ -1331,7 +1341,7 @@ function AuditLogsPage() {
     (actionFilter === "All Actions" || e.result === actionFilter)
   );
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${reduced ? "" : "page-enter"}`}>
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Audit Logs</h1>
         <p className="text-sm text-slate-400 mt-0.5">Complete record of admin actions and system events.</p>
@@ -1348,7 +1358,7 @@ function AuditLogsPage() {
           {filtered.map((entry, i) => {
             const resultIcon = entry.result === "Success" ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : entry.result === "Failed" ? <XCircle className="w-4 h-4 text-red-500" /> : <AlertCircle className="w-4 h-4 text-amber-500" />;
             return (
-              <div key={entry.id} className="flex items-start gap-4 px-6 py-4 hover:bg-blue-50/20 transition-colors">
+              <div key={entry.id} className="table-row-enter flex items-start gap-4 px-6 py-4 hover:bg-blue-50/20 transition-colors" style={{ animationDelay: `${i * 26}ms` }}>
                 <div className="flex flex-col items-center pt-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${entry.result === "Success" ? "bg-emerald-50" : entry.result === "Failed" ? "bg-red-50" : "bg-amber-50"}`}>{resultIcon}</div>
                   {i < filtered.length - 1 && <div className="w-0.5 bg-slate-100 flex-1 mt-2 min-h-[20px]" />}
@@ -1377,12 +1387,13 @@ function AuditLogsPage() {
 // ─── Notifications Page ─────────────────────────────────────────────────────
 
 function NotificationsPage() {
+  const reduced = usePrefersReducedMotion();
   const [notifs, setNotifs] = useState(mockNotifications);
   const unread = notifs.filter(n => !n.read).length;
   const groups = ["Today", "Yesterday", "Earlier"] as const;
   const markAll = () => setNotifs(n => n.map(x => ({ ...x, read: true })));
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className={`space-y-5 max-w-3xl ${reduced ? "" : "page-enter"}`}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -1400,11 +1411,11 @@ function NotificationsPage() {
           <div key={group}>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">{group}</h3>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50 overflow-hidden">
-              {grouped.map(n => {
+              {grouped.map((n, index) => {
                 const { icon: NIcon, color } = notifIconMap[n.type];
                 return (
                   <div key={n.id} onClick={() => setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
-                    className={`flex items-start gap-4 px-5 py-4 cursor-pointer transition-colors hover:bg-blue-50/30 ${!n.read ? "bg-blue-50/20" : ""}`}>
+                    className={`notification-enter flex items-start gap-4 px-5 py-4 cursor-pointer transition-colors hover:bg-blue-50/30 ${!n.read ? "bg-blue-50/20" : ""}`} style={{ animationDelay: `${index * 40}ms` }}>
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
                       <NIcon className="w-4 h-4" />
                     </div>
@@ -1412,7 +1423,7 @@ function NotificationsPage() {
                       <p className={`text-sm ${!n.read ? "font-semibold text-slate-800" : "text-slate-600"}`}>{n.message}</p>
                       <p className="text-xs text-slate-400 mt-1">{n.timestamp}</p>
                     </div>
-                    {!n.read && <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />}
+                    {!n.read && <div className="pulse-soft mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />}
                   </div>
                 );
               })}
@@ -1438,8 +1449,9 @@ const settingsSections = [
 ];
 
 function SettingsPage() {
+  const reduced = usePrefersReducedMotion();
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${reduced ? "" : "page-enter"}`}>
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="text-sm text-slate-400 mt-0.5">Configure and manage your SVGA Book Bank portal.</p>
@@ -1479,50 +1491,99 @@ const navItems = [
 ] as const;
 
 function Navbar({ current, setCurrent, notifCount }: { current: Page; setCurrent: (p: Page) => void; notifCount: number }) {
+  const reduced = usePrefersReducedMotion();
+  const navRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
+
+  useEffect(() => {
+    const activeIndex = navItems.findIndex((item) => item.key === current);
+    const activeButton = navRefs.current[activeIndex];
+
+    if (!activeButton) {
+      setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
+      return;
+    }
+
+    const updateIndicator = () => {
+      const parentRect = activeButton.parentElement?.getBoundingClientRect();
+      const rect = activeButton.getBoundingClientRect();
+      if (!parentRect) return;
+
+      setIndicatorStyle({
+        left: rect.left - parentRect.left,
+        width: rect.width,
+        opacity: 1,
+      });
+    };
+
+    const raf = window.requestAnimationFrame(updateIndicator);
+    window.addEventListener("resize", updateIndicator);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [current]);
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-blue-100 h-14 flex items-center px-6 gap-6 shadow-sm">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 flex-shrink-0 mr-4">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center shadow-md shadow-blue-200">
-          <BookOpen className="w-4 h-4 text-white" />
-        </div>
-        <div className="leading-none">
-          <div className="text-sm font-bold text-slate-900">SVGA</div>
-          <div className="text-[10px] text-slate-400 font-medium tracking-wide">Book Bank</div>
-        </div>
-      </div>
-
-      {/* Nav Items */}
-      <nav className="flex items-center gap-0.5 flex-1">
-        {navItems.map(item => {
-          const Icon = item.icon;
-          const active = current === item.key;
-          return (
-            <button key={item.key} onClick={() => setCurrent(item.key as Page)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 relative ${active ? "bg-blue-600 text-white shadow-sm shadow-blue-200" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"}`}>
-              <Icon className="w-3.5 h-3.5" />
-              {item.label}
-              {"badge" in item && !active && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{(item as { badge: number }).badge}</span>}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Right side */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button onClick={() => setCurrent("notifications")} className={`relative p-2 rounded-xl transition-colors ${current === "notifications" ? "bg-blue-100 text-blue-600" : "hover:bg-slate-100 text-slate-500"}`}>
-          <Bell className="w-4 h-4" />
-          {notifCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
-        </button>
-        <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">S</div>
-          <div className="leading-none hidden md:block">
-            <div className="text-xs font-semibold text-slate-800">Admin Suresh</div>
-            <div className="text-[10px] text-slate-400">Super Admin</div>
+    <header className="fixed inset-x-0 top-0 z-40 h-16 border-b border-blue-100/80 bg-white/80 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] backdrop-blur-xl sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-3">
+        <div className="flex flex-shrink-0 items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 shadow-md shadow-blue-200/70">
+            <BookOpen className="h-4.5 w-4.5 text-white" />
           </div>
-          <button onClick={() => toast.info("Logging out...")} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors ml-1">
-            <LogOut className="w-3.5 h-3.5" />
+          <div className="leading-none">
+            <div className="text-sm font-bold text-slate-900">SVGA</div>
+            <div className="text-[10px] font-medium tracking-[0.22em] text-slate-400">Book Bank</div>
+          </div>
+        </div>
+
+        <div className="hidden flex-1 items-center justify-center lg:flex">
+          <div className="relative w-full max-w-[760px] rounded-2xl border border-slate-100/70 bg-slate-50/70 p-1.5 shadow-inner shadow-slate-200/60">
+            <div
+              className="absolute inset-y-1.5 z-0 rounded-xl border border-white/70 bg-white/80 shadow-[0_8px_24px_rgba(59,130,246,0.12)] backdrop-blur-md transition-all duration-250 ease-in-out"
+              style={{ left: indicatorStyle.left, width: indicatorStyle.width, opacity: indicatorStyle.opacity }}
+            />
+            <nav className="relative z-10 grid grid-cols-6 gap-1.5">
+              {navItems.map((item, index) => {
+                const Icon = item.icon;
+                const active = current === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    ref={(el) => {
+                      navRefs.current[index] = el;
+                    }}
+                    onClick={() => setCurrent(item.key as Page)}
+                    className={`group flex min-w-[92px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-180 ease-in-out ${active ? "text-blue-700" : "text-slate-500 hover:bg-white/70 hover:text-slate-800"}`}
+                  >
+                    <Icon className={`h-3.5 w-3.5 transition-all duration-180 ease-in-out ${reduced ? "" : active ? "scale-105" : "group-hover:scale-105"}`} />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                    {"badge" in item && !active && <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">{(item as { badge: number }).badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        <div className="flex flex-shrink-0 items-center gap-2.5">
+          <button
+            onClick={() => setCurrent("notifications")}
+            className={`relative rounded-2xl p-2.5 transition-all duration-180 ease-in-out ${current === "notifications" ? "bg-blue-50 text-blue-600 shadow-sm" : "text-slate-500 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700"}`}
+          >
+            <Bell className="h-4 w-4" />
+            {notifCount > 0 && <span className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ${reduced ? "" : "animate-[pulse_2.8s_ease-in-out_infinite]"}`} />}
           </button>
+          <div className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white/80 px-2.5 py-1.5 shadow-sm transition-all duration-180 ease-in-out hover:-translate-y-0.5 hover:bg-slate-50">
+            <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-xs font-bold text-white shadow-sm transition-transform duration-180 ease-in-out ${reduced ? "" : "hover:scale-105"}`}>S</div>
+            <div className="hidden leading-none md:block">
+              <div className="text-xs font-semibold text-slate-800">Admin Suresh</div>
+              <div className="text-[10px] text-slate-400">Super Admin</div>
+            </div>
+            <button onClick={() => toast.info("Logging out...")} className="ml-1 rounded-lg p-1.5 text-slate-400 transition-colors duration-180 ease-in-out hover:bg-red-50 hover:text-red-500">
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -1551,7 +1612,7 @@ export default function App() {
       <Navbar current={page} setCurrent={setPage} notifCount={unreadNotifs} />
       <main className="pt-14">
         <div className="max-w-[1400px] mx-auto px-6 py-8">
-          <div key={page} className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div key={page} className="page-enter">
             {pageMap[page]}
           </div>
         </div>
