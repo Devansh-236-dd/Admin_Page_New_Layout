@@ -41,6 +41,7 @@ interface RequestRecord {
   type: "Online" | "Manual"; created: string; challanNo: string; status: "Pending" | "Completed";
   libraryBooks: LibraryBookItem[];
   specialBooks: SpecialBookItem[];
+  remark?: string;
 }
 
 interface InventoryBook {
@@ -265,6 +266,7 @@ const statusColors: Record<string, string> = {
   Pending:   "bg-amber-100 text-amber-700 border border-amber-200",
   Approved:  "bg-blue-100 text-blue-700 border border-blue-200",
   Rejected:  "bg-red-100 text-red-700 border border-red-200",
+  Buy:       "bg-violet-100 text-violet-700 border border-violet-200",
   Completed: "bg-emerald-100 text-emerald-700 border border-emerald-200",
   Active:    "bg-emerald-100 text-emerald-700 border border-emerald-200",
   Suspended: "bg-red-100 text-red-700 border border-red-200",
@@ -275,6 +277,8 @@ const statusColors: Record<string, string> = {
   Standard:  "bg-slate-100 text-slate-600",
   Premium:   "bg-purple-100 text-purple-700",
 };
+
+const autoBuyRemark = "The requested book can be purchased by the student. While returning the book to the SVGA office, please carry the original physical purchase invoice. The reimbursement amount will be processed only after invoice verification as per community guidelines.";
 
 const notifIconMap: Record<string, { icon: typeof Bell; color: string }> = {
   request:   { icon: FileText, color: "text-blue-600 bg-blue-50" },
@@ -429,16 +433,101 @@ function ProcurementTimeline({ currentStage }: { currentStage: LifecycleStage })
   );
 }
 
-function LifecycleDropdown({ value, onChange }: { value: LifecycleStage; onChange: (value: LifecycleStage) => void }) {
+function LifecycleDropdown({ value, onChange, disabled }: { value: LifecycleStage; onChange: (value: LifecycleStage) => void; disabled?: boolean }) {
   return (
     <label className="flex flex-col gap-2 text-sm text-slate-600">
       <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Lifecycle</span>
-      <select value={value} onChange={(e) => onChange(e.target.value as LifecycleStage)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none ring-0 focus:border-blue-300 focus:bg-white">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as LifecycleStage)}
+        disabled={disabled}
+        className={`rounded-xl border px-3 py-2 text-sm text-slate-700 outline-none ring-0 focus:border-blue-300 focus:bg-white ${disabled ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed" : "border-slate-200 bg-slate-50"}`}>
         {procurementStages.map((stage) => (
           <option key={stage} value={stage}>{stage}</option>
         ))}
       </select>
     </label>
+  );
+}
+
+function RemarksSection({ remark, onChange, editable }: { remark: string; onChange?: (value: string) => void; editable?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Remarks</div>
+      {editable ? (
+        <textarea
+          value={remark}
+          onChange={(e) => onChange?.(e.target.value)}
+          rows={4}
+          className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-0"
+          placeholder="Add processing notes or clarifications here..."
+        />
+      ) : (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{remark || "No remarks added."}</p>
+      )}
+    </div>
+  );
+}
+
+function SignatureSection({ adminName, studentName, date, remark, editable, onRemarkChange }: { adminName: string; studentName: string; date: string; remark: string; editable?: boolean; onRemarkChange?: (value: string) => void }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-100 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Admin Signature</div>
+          <div className="mt-8 h-10 border-b border-slate-200" />
+          <div className="mt-4 text-sm font-medium text-slate-700">{adminName}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-100 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Student Signature</div>
+          <div className="mt-8 h-10 border-b border-slate-200" />
+          <div className="mt-4 text-sm font-medium text-slate-700">{studentName}</div>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Date</div>
+          <div className="mt-3 text-sm font-medium text-slate-700">{date}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50">
+          <RemarksSection remark={remark} onChange={onRemarkChange ?? (() => {})} editable={editable} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChallanModal({ children, title, subtitle, label, onClose }: { children: React.ReactNode; title: string; subtitle: string; label: string; onClose: () => void }) {
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50 px-6 py-5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">{subtitle}</h2>
+            <p className="text-sm text-slate-500">{label}</p>
+          </div>
+          <button onClick={onClose} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-6">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -495,6 +584,14 @@ function PendingRequestChallan({ request, onClose, onUpdateRequest, onFinalize }
   const toggle = (k: string) => setOpenSection((p) => (p === k ? null : k));
   const allDecisionsMade = request.libraryBooks.every((book) => book.status !== "Pending") && request.specialBooks.every((book) => book.status !== "Pending");
 
+  const computeRemark = (specialBooks: SpecialBookItem[], currentRemark?: string) => {
+    const hasBuy = specialBooks.some((book) => book.isMarkedForPurchase);
+    if (hasBuy) {
+      return currentRemark && currentRemark !== autoBuyRemark ? currentRemark : autoBuyRemark;
+    }
+    return currentRemark === autoBuyRemark ? "" : currentRemark ?? "";
+  };
+
   const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <button onClick={() => toggle(id)} className="flex w-full items-center justify-between px-5 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
@@ -518,159 +615,138 @@ function PendingRequestChallan({ request, onClose, onUpdateRequest, onFinalize }
   };
 
   const updateSpecialBook = (bookId: string, changes: Partial<SpecialBookItem>) => {
-    const next = { ...request, specialBooks: request.specialBooks.map((book) => (book.id === bookId ? { ...book, ...changes } : book)) };
-    onUpdateRequest(next);
+    const nextSpecialBooks = request.specialBooks.map((book) => (book.id === bookId ? { ...book, ...changes } : book));
+    const nextRemark = computeRemark(nextSpecialBooks, request.remark);
+    onUpdateRequest({ ...request, specialBooks: nextSpecialBooks, remark: nextRemark });
   };
 
-  const currentStage = request.specialBooks.length > 0 ? request.specialBooks.reduce((acc, book) => {
-    const currentIndex = procurementStages.indexOf(book.procurementStage);
-    const accIndex = procurementStages.indexOf(acc);
-    return currentIndex > accIndex ? book.procurementStage : acc;
-  }, procurementStages[0]) : procurementStages[0];
+  const updateRemark = (value: string) => {
+    onUpdateRequest({ ...request, remark: value });
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-5 text-white">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-100">
-                <FileText className="h-4 w-4" /> Pending Request Challan
-              </div>
-              <h2 className="text-xl font-semibold">{request.challanNo}</h2>
-              <p className="mt-1 text-sm text-blue-50">Application #{request.appNo}</p>
-            </div>
-            <button onClick={onClose} className="rounded-xl bg-white/10 p-2 transition hover:bg-white/20">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-6">
-          <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Procurement Lifecycle</h3>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">{currentStage}</span>
-            </div>
-            <ProcurementTimeline currentStage={currentStage} />
-          </div>
+    <ChallanModal title="Pending Request Challan" subtitle={request.challanNo} label={`Application #${request.appNo}`} onClose={onClose}>
+      <div className="space-y-6">
+        <Section id="student" title="Student Details">
+          <InfoRow label="Student Name" value={request.student} />
+          <InfoRow label="Student ID" value={request.studentId} />
+          <InfoRow label="Department" value={request.dept} />
+          <InfoRow label="Semester" value={request.semester} />
+        </Section>
+        <Section id="library" title="Library Books">
           <div className="space-y-3">
-            <Section id="student" title="Student Details">
-              <InfoRow label="Student Name" value={request.student} />
-              <InfoRow label="Student ID" value={request.studentId} />
-              <InfoRow label="Department" value={request.dept} />
-              <InfoRow label="Semester" value={request.semester} />
-            </Section>
-            <Section id="library" title="Library Books">
-              <div className="space-y-3">
-                {request.libraryBooks.map((book) => (
-                  <LibraryBookCard key={book.id} book={book} onApprove={() => updateLibraryBook(book.id, "Approved")} onReject={() => updateLibraryBook(book.id, "Rejected")} />
-                ))}
-              </div>
-            </Section>
-            <Section id="special" title="Special Book Requests">
-              <div className="space-y-3">
-                {request.specialBooks.map((book) => (
-                  <SpecialBookCard key={book.id} book={book} onApprove={() => updateSpecialBook(book.id, { status: "Approved", isMarkedForPurchase: false })} onReject={() => updateSpecialBook(book.id, { status: "Rejected", isMarkedForPurchase: false })} onBuy={() => updateSpecialBook(book.id, { status: "Approved", isMarkedForPurchase: true })} onStageChange={(stage) => updateSpecialBook(book.id, { procurementStage: stage })} />
-                ))}
-              </div>
-            </Section>
-            <Section id="summary" title="Review & Notes">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Pending</span>
-                    <span className="text-sm text-slate-500">Awaiting final admin submission</span>
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Remarks</p>
-                  <textarea rows={3} placeholder="Add processing notes here..." className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300" />
-                </div>
-              </div>
-            </Section>
+            {request.libraryBooks.map((book) => (
+              <LibraryBookCard key={book.id} book={book} onApprove={() => updateLibraryBook(book.id, "Approved")} onReject={() => updateLibraryBook(book.id, "Rejected")} />
+            ))}
           </div>
-        </div>
-        <div className="flex-shrink-0 border-t border-slate-200 bg-slate-50/70 px-6 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-slate-500">{allDecisionsMade ? "All requested items have a decision and are ready for submission." : "Every library and special book needs an approval or rejection before submission."}</div>
-            <div className="flex items-center gap-2">
-              <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Close</button>
-              <button disabled={!allDecisionsMade} onClick={() => onFinalize(request.appNo)} className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">Final Submit</button>
-            </div>
+        </Section>
+        <Section id="special" title="Special Book Requests">
+          <div className="space-y-3">
+            {request.specialBooks.map((book) => (
+              <SpecialBookCard
+                key={book.id}
+                book={book}
+                onApprove={() => updateSpecialBook(book.id, { status: "Approved", isMarkedForPurchase: false })}
+                onReject={() => updateSpecialBook(book.id, { status: "Rejected", isMarkedForPurchase: false })}
+                onBuy={() => updateSpecialBook(book.id, { status: "Buy", isMarkedForPurchase: true })}
+                onStageChange={(stage) => updateSpecialBook(book.id, { procurementStage: stage })}
+              />
+            ))}
+          </div>
+        </Section>
+        <SignatureSection
+          adminName="Admin Suresh"
+          studentName={request.student}
+          date={request.created}
+          remark={request.remark ?? ""}
+          editable
+          onRemarkChange={updateRemark}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="text-sm text-slate-500">{allDecisionsMade ? "All requested items have a decision and are ready for submission." : "Every library and special book needs an approval or rejection before submission."}</div>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Close</button>
+            <button disabled={!allDecisionsMade} onClick={() => onFinalize(request.appNo)} className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">Final Submit</button>
           </div>
         </div>
       </div>
-    </div>
+    </ChallanModal>
   );
 }
 
-function CompletedRequestChallan({ request }: { request: RequestRecord }) {
-  const currentStage = request.specialBooks.length > 0 ? request.specialBooks.reduce((acc, book) => {
-    const currentIndex = procurementStages.indexOf(book.procurementStage);
-    const accIndex = procurementStages.indexOf(acc);
-    return currentIndex > accIndex ? book.procurementStage : acc;
-  }, procurementStages[0]) : procurementStages[0];
-
+function CompletedRequestChallan({ request, onClose }: { request: RequestRecord; onClose: () => void }) {
   return (
-    <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-4 text-white">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">Completed Request</p>
-            <h3 className="mt-1 text-lg font-semibold">{request.challanNo}</h3>
-            <p className="mt-1 text-sm text-emerald-50">Application #{request.appNo}</p>
-          </div>
-          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Completed</span>
-        </div>
-      </div>
-      <div className="p-5">
-        <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Procurement Lifecycle</p>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">{currentStage}</span>
-          </div>
-          <ProcurementTimeline currentStage={currentStage} />
-        </div>
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Student Details</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-700">
-              <div className="flex items-center justify-between"><span className="text-slate-500">Student</span><span className="font-medium">{request.student}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-500">Student ID</span><span className="font-medium">{request.studentId}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-500">Department</span><span className="font-medium">{request.dept}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-500">Semester</span><span className="font-medium">{request.semester}</span></div>
+    <ChallanModal title="Completed Request Challan" subtitle={request.challanNo} label={`Application #${request.appNo}`} onClose={onClose}>
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Student Details</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-white p-4">
+              <div className="text-xs text-slate-500">Student Name</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{request.student}</div>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <div className="text-xs text-slate-500">Student ID</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{request.studentId}</div>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <div className="text-xs text-slate-500">Department</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{request.dept}</div>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <div className="text-xs text-slate-500">Semester</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{request.semester}</div>
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Library Books</p>
-            <div className="mt-3 space-y-2 text-sm">
-              {request.libraryBooks.map((book) => (
-                <div key={book.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-                  <span className="text-slate-700">{book.title}</span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{book.status}</span>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Library Books</p>
+          <div className="mt-3 space-y-2 text-sm">
+            {request.libraryBooks.map((book) => (
+              <div key={book.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-sm">
+                <div>
+                  <p className="font-medium text-slate-800">{book.title}</p>
+                  <p className="text-xs text-slate-500">{book.author}</p>
                 </div>
-              ))}
-            </div>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{book.status}</span>
+              </div>
+            ))}
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Special Book Requests</p>
-            <div className="mt-3 space-y-2 text-sm">
-              {request.specialBooks.map((book) => (
-                <div key={book.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-                  <span className="text-slate-700">{book.title}</span>
-                  <div className="flex items-center gap-2">
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Special Book Requests</p>
+          <div className="mt-4 space-y-4">
+            {request.specialBooks.map((book) => (
+              <div key={book.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{book.title}</p>
+                    <p className="mt-1 text-sm text-slate-500">{book.author}</p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:items-end">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${book.isMarkedForPurchase ? "bg-violet-100 text-violet-700" : book.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{book.isMarkedForPurchase ? "Buy" : book.status}</span>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{book.procurementStage}</span>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="mt-4">
+                  <ProcurementTimeline currentStage={book.procurementStage} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+
+        <SignatureSection
+          adminName="Admin Suresh"
+          studentName={request.student}
+          date={request.created}
+          remark={request.remark ?? ""}
+          editable={false}
+        />
       </div>
-    </div>
+    </ChallanModal>
   );
 }
 
@@ -813,18 +889,18 @@ function Badge({ status }: { status: string }) {
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
-function Pagination({ total, page, setPage, perPage = 5 }: { total: number; page: number; setPage: (p: number) => void; perPage?: number }) {
+function Pagination({ total, page, setPage, perPage = 5 }: { total: number; page: number; setPage: React.Dispatch<React.SetStateAction<number>>; perPage?: number }) {
   const pages = Math.ceil(total / perPage);
   if (pages <= 1) return null;
   return (
     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
       <span className="text-xs text-slate-400">Showing {Math.min((page - 1) * perPage + 1, total)}–{Math.min(page * perPage, total)} of {total}</span>
       <div className="flex items-center gap-1">
-        <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-slate-600" /></button>
+        <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-slate-600" /></button>
         {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)} className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${p === page ? "bg-blue-600 text-white" : "hover:bg-slate-100 text-slate-600"}`}>{p}</button>
         ))}
-        <button disabled={page === pages} onClick={() => setPage(p => p + 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors"><ChevronRight className="w-3.5 h-3.5 text-slate-600" /></button>
+        <button disabled={page === pages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition-colors"><ChevronRight className="w-3.5 h-3.5 text-slate-600" /></button>
       </div>
     </div>
   );
@@ -885,6 +961,7 @@ function RequestsPage() {
 
   const updateRequest = (updated: RequestRecord) => {
     setRequests((prev) => prev.map((request) => (request.appNo === updated.appNo ? updated : request)));
+    setSelectedRequest((prev) => (prev?.appNo === updated.appNo ? updated : prev));
   };
 
   const finalizeRequest = (appNo: string) => {
@@ -909,7 +986,7 @@ function RequestsPage() {
 
   return (
     <div className="space-y-5">
-      {selectedRequest && (selectedRequest.status === "Completed" ? <CompletedRequestChallan request={selectedRequest} /> : <PendingRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} onUpdateRequest={updateRequest} onFinalize={finalizeRequest} />)}
+      {selectedRequest && (selectedRequest.status === "Completed" ? <CompletedRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} /> : <PendingRequestChallan request={selectedRequest} onClose={() => setSelectedRequest(null)} onUpdateRequest={updateRequest} onFinalize={finalizeRequest} />)}
       {exportModal && <ExportConfirmationModal type={exportModal} selectedCount={selectedBookObjects.length} onClose={() => setExportModal(null)} onConfirm={() => { toast.success(`Generated ${exportModal.toUpperCase()} export.`); setExportModal(null); }} />}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Book Requests</h1>
